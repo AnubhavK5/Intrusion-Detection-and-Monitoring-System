@@ -30,4 +30,4 @@ def start_sniffing(interface="eth0"):
 
 
 if __name__ == "__main__":
-    start_sniffing("wlan0")
+    start_sniffing("lo")
