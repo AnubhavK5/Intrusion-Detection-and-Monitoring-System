@@ -8,11 +8,13 @@ def process_packet(pkt):
     if pkt.haslayer(IP):
         src_ip = pkt[IP].src
         dst_ip = pkt[IP].dst
+        port = pkt[port]
         proto = "TCP" if pkt.haslayer(TCP) else "IP"
 
     elif pkt.haslayer(ARP):
         src_ip = pkt[ARP].psrc
         dst_ip = pkt[ARP].pdst
+        port = pkt[port]
         proto = "ARP"
 
     log_entry = f"[{datetime.now()}] {proto} | {src_ip} -> {dst_ip}\n"
