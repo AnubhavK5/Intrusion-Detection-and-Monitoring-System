@@ -1,0 +1,140 @@
+{% extends 'monitor/base.html' %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="mb-4">IDMS Dashboard</h1>
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Security Monitoring Control Panel</h5>
+                    <p class="card-text">Manage and simulate different types of network attacks for testing and monitoring purposes.</p>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-header bg-primary text-white">
+                                    <i class="fas fa-cogs me-2"></i> Attack Simulation
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-grid gap-2">
+                                        <button id="simulate-ddos" class="btn btn-outline-danger">
+                                            <i class="fas fa-network-wired me-2"></i> Simulate DDoS Attack
+                                        </button>
+                                        <button id="simulate-port-scan" class="btn btn-outline-warning">
+                                            <i class="fas fa-search me-2"></i> Simulate Port Scan
+                                        </button>
+                                        <button id="simulate-mitm" class="btn btn-outline-primary">
+                                            <i class="fas fa-user-secret me-2"></i> Simulate MITM Attack
+                                        </button>
+                                        <button id="simulate-brute-force" class="btn btn-outline-dark">
+                                            <i class="fas fa-key me-2"></i> Simulate Brute Force
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card mb-3">
+                                <div class="card-header bg-success text-white">
+                                    <i class="fas fa-shield-alt me-2"></i> Detection Controls
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-grid gap-2">
+                                        <button id="run-detection" class="btn btn-success">
+                                            <i class="fas fa-play me-2"></i> Run Detection
+                                        </button>
+                                        <div class="progress mt-2 d-none" id="detection-progress">
+                                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col">
+            <h2 class="mb-3">Threat Alerts</h2>
+            <div id="alerts-container">
+                {% include "monitor/alerts_list.html" %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Common function for attack simulation
+        function simulateAttack(type) {
+            $.ajax({
+                url: '{% url "simulate_attack" %}',
+                data: { type: type },
+                success: function(response) {
+                    if (response.status === 'success') {
+                        alert('Attack simulation started: ' + response.message);
+                    } else {
+                        alert('Error: ' + response.message);
+                    }
+                },
+                error: function() {
+                    alert('Failed to simulate attack. Please try again.');
+                }
+            });
+        }
+        
+        // Attack simulation buttons
+        $('#simulate-ddos').click(function() {
+            simulateAttack('ddos');
+        });
+        
+        $('#simulate-port-scan').click(function() {
+            simulateAttack('port_scan');
+        });
+        
+        $('#simulate-mitm').click(function() {
+            simulateAttack('mitm');
+        });
+        
+        $('#simulate-brute-force').click(function() {
+            simulateAttack('brute_force');
+        });
+        
+        // Run detection
+        $('#run-detection').click(function() {
+            $('#detection-progress').removeClass('d-none');
+            $(this).prop('disabled', true);
+            
+            $.ajax({
+                url: '{% url "run_detection" %}',
+                success: function(response) {
+                    if (response.status === 'success') {
+                        // Refresh alerts list
+                        $.get(window.location.href, function(data) {
+                            var alertsHtml = $(data).find('#alerts-container').html();
+                            $('#alerts-container').html(alertsHtml);
+                        });
+                        alert('Detection completed successfully!');
+                    } else {
+                        alert('Error: ' + response.message);
+                    }
+                },
+                error: function() {
+                    alert('Failed to run detection. Please try again.');
+                },
+                complete: function() {
+                    $('#detection-progress').addClass('d-none');
+                    $('#run-detection').prop('disabled', false);
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% if alerts %}
+    <div class="row">
+        {% for alert in alerts %}
+            <div class="col-md-6 mb-3">
+                <div class="card alert-card border-0 shadow-sm">
+                    <div class="card-header 
+                        {% if alert.alert_type == 'DDOS' %}bg-danger
+                        {% elif alert.alert_type == 'PORT_SCAN' %}bg-warning
+                        {% elif alert.alert_type == 'MITM' %}bg-primary
+                        {% elif alert.alert_type == 'BRUTE_FORCE' %}bg-dark
+                        {% endif %} text-white">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>
+                                {% if alert.alert_type == 'DDOS' %}
+                                    <i class="fas fa-network-wired me-2"></i> DDoS Attack
+                                {% elif alert.alert_type == 'PORT_SCAN' %}
+                                    <i class="fas fa-search me-2"></i> Port Scan
+                                {% elif alert.alert_type == 'MITM' %}
+                                    <i class="fas fa-user-secret me-2"></i> Man in the Middle
+                                {% elif alert.alert_type == 'BRUTE_FORCE' %}
+                                    <i class="fas fa-key me-2"></i> Brute Force
+                                {% endif %}
+                            </span>
+                            <small>{{ alert.timestamp|date:"M d, Y H:i:s" }}</small>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">Source IP: {{ alert.source_ip }}</h5>
+                        <p class="card-text">{{ alert.details }}</p>
+                    </div>
+                    <div class="card-footer bg-light d-flex justify-content-between">
+                        <span class="text-muted">Status: {% if alert.is_resolved %}Resolved{% else %}Active{% endif %}</span>
+                        <div>
+                            <button class="btn btn-sm btn-outline-secondary">Details</button>
+                            {% if not alert.is_resolved %}
+                                <button class="btn btn-sm btn-outline-success">Mark Resolved</button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle me-2"></i> No threat alerts detected. Run detection or simulate attacks to generate alerts.
+    </div>
+{% endif %}

@@ -1,0 +1,79 @@
+{% extends 'monitor/base.html' %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-dark text-white text-center">
+                    <h4><i class="fas fa-key me-2"></i> Demo Login</h4>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i> This is a demo login page for simulating brute force attacks.
+                        <ul class="mb-0 mt-2">
+                            <li>Valid credentials: username: <strong>admin</strong>, password: <strong>password</strong></li>
+                            <li>Any other combination will generate a login failure log</li>
+                        </ul>
+                    </div>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Username</label>
+                            <input type="text" class="form-control" id="username" name="username" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-sign-in-alt me-2"></i> Login
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer text-center">
+                    <p class="text-muted mb-0">Failed login attempts will be logged for detection</p>
+                </div>
+            </div>
+            
+            <div class="card mt-4">
+                <div class="card-header bg-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i> Simulate Brute Force
+                </div>
+                <div class="card-body">
+                    <p>Quickly simulate multiple failed login attempts to trigger brute force detection</p>
+                    <button id="simulate-brute-force" class="btn btn-outline-dark">
+                        <i class="fas fa-key me-2"></i> Simulate Brute Force Attempts
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        $('#simulate-brute-force').click(function() {
+            $.ajax({
+                url: '{% url "simulate_attack" %}',
+                data: { type: 'brute_force' },
+                success: function(response) {
+                    if (response.status === 'success') {
+                        alert('Brute force simulation started: ' + response.message);
+                    } else {
+                        alert('Error: ' + response.message);
+                    }
+                },
+                error: function() {
+                    alert('Failed to simulate attack. Please try again.');
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}
