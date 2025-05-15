@@ -269,7 +269,7 @@ def main():
     """Main function to run detection algorithms on log file"""
     with open("logs/captured_packets.log", "r") as f:
         lines = f.readlines()
-    
+    # Captcha*
     logs = [parse_log_line(line) for line in lines]
     logs = [log for log in logs if log is not None]  # Filter out None values
 

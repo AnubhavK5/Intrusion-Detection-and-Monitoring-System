@@ -8,7 +8,7 @@ class ThreatAlert(models.Model):
         ('BRUTE_FORCE', 'Brute Force'),
     ]
     
-    alert_type = models.CharField(max_length=20, choices=ALERT_TYPES)
+    alert_type = models.CharField(max_length=20, choices=ALERT_TYPES, default='DDOS')
     source_ip = models.CharField(max_length=45)  # IPv6 can be up to 45 chars
     details = models.TextField()
     timestamp = models.DateTimeField(auto_now_add=True)
