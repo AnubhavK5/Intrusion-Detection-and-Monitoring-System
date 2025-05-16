@@ -62,7 +62,7 @@
         <div class="col">
             <h2 class="mb-3">Threat Alerts</h2>
             <div id="alerts-container">
-                {% include "monitor/alerts_list.html" %}
+                {% include 'monitor/alerts_list.html' %}
             </div>
         </div>
     </div>
@@ -134,6 +134,101 @@
                     $('#run-detection').prop('disabled', false);
                 }
             });
+        });
+        
+        // Handle resolve button clicks
+        $(document).on('click', '.resolve-btn', function() {
+            var alertId = $(this).data('alert-id');
+            var button = $(this);
+            
+            $.ajax({
+                url: `/monitor/alert/${alertId}/resolve/`,
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                success: function(response) {
+                    if (response.status === 'success') {
+                        // Update the UI
+                        button.closest('.card').find('.text-muted').text('Status: Resolved');
+                        button.remove();
+                    }
+                },
+                error: function() {
+                    alert('Failed to resolve alert. Please try again.');
+                }
+            });
+        });
+
+        // Handle details button clicks
+        $(document).on('click', '.details-btn', function() {
+            var alertId = $(this).data('alert-id');
+            
+            $.ajax({
+                url: `/monitor/alert/${alertId}/details/`,
+                method: 'GET',
+                success: function(alert) {
+                    // Create and show modal with alert details
+                    var modal = `
+                        <div class="modal fade" id="alertModal" tabindex="-1">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title">Alert Details</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p><strong>Type:</strong> ${alert.type}</p>
+                                        <p><strong>Source IP:</strong> ${alert.source_ip}</p>
+                                        <p><strong>Timestamp:</strong> ${alert.timestamp}</p>
+                                        <p><strong>Status:</strong> ${alert.is_resolved ? 'Resolved' : 'Active'}</p>
+                                        <p><strong>Details:</strong></p>
+                                        <pre>${alert.details}</pre>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Remove any existing modal
+                    $('#alertModal').remove();
+                    
+                    // Add and show new modal
+                    $('body').append(modal);
+                    $('#alertModal').modal('show');
+                },
+                error: function() {
+                    alert('Failed to fetch alert details. Please try again.');
+                }
+            });
+        });
+        
+        // Handle resolve all alerts button
+        $(document).on('click', '#resolve-all-alerts', function() {
+            if (confirm('Are you sure you want to resolve all alerts? This will clear the log file.')) {
+                $.ajax({
+                    url: '{% url "resolve_all_alerts" %}',
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            // Refresh the alerts container
+                            $('#alerts-container').html(`
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i> No threat alerts detected. Run detection or simulate attacks to generate alerts.
+                                </div>
+                            `);
+                        } else {
+                            alert('Error: ' + response.message);
+                        }
+                    },
+                    error: function() {
+                        alert('Failed to resolve alerts. Please try again.');
+                    }
+                });
+            }
         });
     });
 </script>

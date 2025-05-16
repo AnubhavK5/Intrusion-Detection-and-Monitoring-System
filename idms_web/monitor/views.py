@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.contrib import messages
 from django.utils import timezone
@@ -165,3 +165,42 @@ def create_alert(alert_type, source_ip, details):
         source_ip=source_ip,
         details=details
     )
+
+def resolve_alert(request, alert_id):
+    """Mark an alert as resolved"""
+    if request.method == 'POST':
+        alert = get_object_or_404(ThreatAlert, id=alert_id)
+        alert.is_resolved = True
+        alert.save()
+        return JsonResponse({'status': 'success'})
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+
+def alert_details(request, alert_id):
+    """Get alert details"""
+    alert = get_object_or_404(ThreatAlert, id=alert_id)
+    details = {
+        'id': alert.id,
+        'type': alert.alert_type,
+        'source_ip': alert.source_ip,
+        'details': alert.details,
+        'timestamp': alert.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
+        'is_resolved': alert.is_resolved
+    }
+    return JsonResponse(details)
+
+def resolve_all_alerts(request):
+    """Mark all alerts as resolved"""
+    if request.method == 'POST':
+        try:
+            # Clear all alerts from database
+            ThreatAlert.objects.all().delete()
+            
+            # Clear the log file
+            log_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'logs', 'captured_packets.log')
+            with open(log_path, 'w') as f:
+                f.write('')  # Clear the file
+                
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)})
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
