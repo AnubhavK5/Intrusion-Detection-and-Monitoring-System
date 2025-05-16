@@ -19,7 +19,7 @@ def process_packet(pkt):
 
     log_entry = f"[{datetime.now()}] {proto} | {src_ip} -> {dst_ip}\n"
     print(log_entry.strip())
-    with open("logs/captured_packets.log", "a") as f:
+    with open("logs/captured_packets.log", "w") as f:
         f.write(log_entry)
 
 

@@ -130,6 +130,7 @@
 #     main()
 
 import re
+import os
 from collections import defaultdict
 from datetime import datetime, timedelta
 
@@ -267,7 +268,10 @@ def detect_brute_force(logs, threshold=5, time_window=300):
 
 def main():
     """Main function to run detection algorithms on log file"""
-    with open("logs/captured_packets.log", "r") as f:
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    log_path = os.path.join(project_root, "logs", "captured_packets.log")
+
+    with open(log_path, "r") as f:
         lines = f.readlines()
     # Captcha*
     logs = [parse_log_line(line) for line in lines]
