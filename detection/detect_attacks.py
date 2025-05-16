@@ -177,15 +177,19 @@ def parse_log_line(line):
 
 def detect_mitm(logs):
     """Detect potential MITM attacks based on ARP traffic patterns"""
-    arp_sources = defaultdict(set)
+    arp_sources = defaultdict(int)
     alerts = []
 
     for log in logs:
         timestamp, proto, src_ip, dst_ip, _ = log
         if proto == "ARP":
-            arp_sources[src_ip].add(dst_ip)
-            if len(arp_sources[src_ip]) > 5:  # Consider it suspicious if sending to multiple targets
-                alerts.append(f"[MITM] {src_ip} sending ARP replies to multiple destinations: {', '.join(list(arp_sources[src_ip])[:5])}...")
+            arp_sources[src_ip] += 1
+    
+    threshold = 8  # Minimum number of ARP packets to consider suspicious
+    for src_ip, count in arp_sources.items():
+        if count >= threshold:
+            alerts.append(f"[MITM] {src_ip} sent suspicious number of ARP packets ({count})")
+
     return alerts
 
 def detect_ddos(logs, threshold=100):
@@ -203,37 +207,21 @@ def detect_ddos(logs, threshold=100):
             alerts.append(f"[DDoS] High packet count from {ip}: {count} packets")
     return alerts
 
-def detect_port_scan(logs, threshold=5, time_window=60):
-    """Detect port scanning based on connections to multiple ports in a short time"""
-    scanner_ports = defaultdict(lambda: defaultdict(list))
+def detect_port_scan(logs, threshold=5):
+    """Detect port scanning based on unique ports accessed by a source IP"""
+    scanner_ports = defaultdict(set)
     alerts = []
 
     for log in logs:
         timestamp, proto, src_ip, dst_ip, port = log
         if proto == "TCP" and port is not None:
-            scanner_ports[src_ip][dst_ip].append((timestamp, port))
+            scanner_ports[src_ip].add(port)
     
-    for src_ip, targets in scanner_ports.items():
-        for dst_ip, connections in targets.items():
-            # Sort connections by timestamp
-            connections.sort(key=lambda x: x[0])
-            
-            # Check if multiple ports were scanned within the time window
-            for i in range(len(connections)):
-                start_time = connections[i][0]
-                end_time = start_time + timedelta(seconds=time_window)
-                
-                # Count ports scanned within window
-                ports_in_window = set()
-                for conn_time, port in connections:
-                    if start_time <= conn_time <= end_time:
-                        ports_in_window.add(port)
-                
-                if len(ports_in_window) >= threshold:
-                    ports_str = ", ".join(str(p) for p in sorted(list(ports_in_window)[:10]))
-                    alerts.append(f"[PORT_SCAN] {src_ip} scanned {len(ports_in_window)} ports on {dst_ip} within {time_window}s. Sample ports: {ports_str}...")
-                    break  # Only report once per src-dst pair
-    
+    for src_ip, ports in scanner_ports.items():
+        if len(ports) >= threshold:
+            ports_str = ", ".join(str(p) for p in list(ports)[:5])
+            alerts.append(f"[PORT_SCAN] {src_ip} scanned {len(ports)} unique ports. Sample ports: {ports_str}...")
+
     return alerts
 
 def detect_brute_force(logs, threshold=5, time_window=300):

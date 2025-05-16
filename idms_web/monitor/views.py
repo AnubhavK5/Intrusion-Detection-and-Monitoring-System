@@ -84,11 +84,14 @@ def simulate_port_scan():
     """Simulate a port scan by adding entries to the log file"""
     log_path = Path(__file__).resolve().parent.parent.parent / 'logs' / 'captured_packets.log'
     attacker_ip = f"192.168.1.{random.randint(2, 254)}"
+    target_ip = "192.168.1.1"
+    
+    common_ports = [21, 22, 23, 25, 53, 80, 443, 445, 3306, 3389]  # Common ports to scan
     
     with open(log_path, "a") as f:
-        for port in range(20, 30):  # Scan ports 20-29
+        for port in common_ports:
             timestamp = timezone.now()
-            log_entry = f"[{timestamp}] TCP | {attacker_ip} -> 192.168.1.1:{port}\n"
+            log_entry = f"[{timestamp}] TCP | {attacker_ip} -> {target_ip}:{port}\n"
             f.write(log_entry)
 
 def simulate_mitm_attack():
@@ -97,10 +100,16 @@ def simulate_mitm_attack():
     attacker_ip = f"192.168.1.{random.randint(2, 254)}"
     
     with open(log_path, "a") as f:
-        for target_ip in [f"192.168.1.{i}" for i in range(2, 10)]:
-            timestamp = timezone.now()
-            log_entry = f"[{timestamp}] ARP | {attacker_ip} -> {target_ip}\n"
-            f.write(log_entry)
+        timestamp = timezone.now()
+        # Generate more ARP traffic for better detection
+        for target_id in range(2, 7):  # Target 5 different IPs
+            target_ip = f"192.168.1.{target_id}"
+            # Send multiple ARP packets for each target
+            for _ in range(3):  # 3 packets per target = 15 total
+                log_entry = f"[{timestamp}] ARP | {attacker_ip} -> {target_ip}\n"
+                f.write(log_entry)
+                # Small delay to ensure unique timestamps
+                time.sleep(0.001)
 
 def simulate_brute_force():
     """Simulate a brute force attack by adding failed login entries"""
@@ -135,22 +144,36 @@ def process_detection_output(output):
     lines = output.split('\n')
     
     for line in lines:
-        if line.startswith('[MITM]'):
-            parts = line.split(' ', 2)
-            if len(parts) >= 3:
-                create_alert('MITM', parts[1], parts[2])
+        if not line.strip():
+            continue
+            
+        if line.startswith('[PORT_SCAN]'):
+            parts = line[11:].split(' ', 1)  # Skip [PORT_SCAN]
+            if len(parts) >= 2:
+                source_ip = parts[0]
+                if not ThreatAlert.objects.filter(
+                    alert_type='PORT_SCAN',
+                    source_ip=source_ip,
+                    is_resolved=False
+                ).exists():
+                    create_alert('PORT_SCAN', source_ip, parts[1])
+        
+        elif line.startswith('[MITM]'):
+            parts = line[6:].split(' ', 1)  # Skip [MITM]
+            if len(parts) >= 2:
+                source_ip = parts[0]
+                if not ThreatAlert.objects.filter(
+                    alert_type='MITM',
+                    source_ip=source_ip,
+                    is_resolved=False
+                ).exists():
+                    create_alert('MITM', source_ip, parts[1])
         
         elif line.startswith('[DDoS]'):
             parts = line.split(' ', 3)
             if len(parts) >= 4:
                 source_ip = parts[3].split(':')[0]
                 create_alert('DDOS', source_ip, line[6:])
-        
-        elif line.startswith('[PORT_SCAN]'):
-            parts = line.split(' ', 2)
-            if len(parts) >= 3:
-                source_ip = parts[1]
-                create_alert('PORT_SCAN', source_ip, line[11:])
         
         elif line.startswith('[BRUTE_FORCE]'):
             parts = line.split(' ', 2)
